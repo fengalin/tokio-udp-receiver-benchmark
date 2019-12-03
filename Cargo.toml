@@ -1,0 +1,9 @@
+[package]
+name = "tokio-udp-receiver-benchmark"
+version = "0.1.0"
+authors = ["Sebastian Dröge <sebastian@centricular.com>"]
+edition = "2018"
+
+[dependencies]
+tokio = { path = "../tokio/tokio", version = "0.2", features = ["net", "io-driver", "rt-core", "rt-threaded"] }
+futures = "0.3"
