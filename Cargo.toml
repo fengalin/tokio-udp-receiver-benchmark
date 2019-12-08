@@ -5,5 +5,6 @@ authors = ["Sebastian Dröge <sebastian@centricular.com>"]
 edition = "2018"
 
 [dependencies]
-tokio = { path = "../tokio/tokio", version = "0.2", features = ["net", "io-driver", "rt-core", "rt-threaded"] }
+tokio = { git = "https://github.com/fengalin/tokio", branch = "fengalin/throttling", version = "0.2", features = ["net", "io-driver", "rt-core", "rt-threaded", "time"] }
+#tokio = { path = "../tokio/tokio", features = ["net", "io-driver", "rt-core", "rt-threaded", "time"] }
 futures = "0.3"
