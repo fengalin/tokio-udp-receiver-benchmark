@@ -1,41 +1,40 @@
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{env, thread};
 
 use tokio::{net, runtime, task};
 
-const THROUGHPUT_PERIOD: u64 = 5;
+const THROUGHPUT_PERIOD: Duration = Duration::from_secs(20);
 
 async fn run(port_from: usize, port_to: usize) {
-    let counter = Arc::new(AtomicU64::new(0));
-
     // Start one task per port
+    let can_count = Arc::new(Mutex::new(Some(())));
     for port in port_from..port_to {
-        let counter_port = counter.clone();
+        let can_count_clone = Arc::clone(&can_count);
         task::spawn(async move {
             let addr = format!("127.0.0.1:{}", port);
             let mut socket = net::UdpSocket::bind(addr).await.unwrap();
             let mut buf = vec![0; 160];
+            let can_count = can_count_clone.lock().unwrap().take().is_some();
+            let mut start = Instant::now();
+            let mut count = 0;
             while let Ok(_) = socket.recv(&mut buf[..]).await {
-                counter_port.fetch_add(1, Ordering::SeqCst);
+                if can_count {
+                    count += 1;
+                    let end = Instant::now();
+                    let delta = end - start;
+                    if can_count && delta > THROUGHPUT_PERIOD {
+                        println!(
+                            "{:3.1}",
+                            (count as f32) * 1_000f32 / (delta.as_millis() as f32)
+                        );
+                        count = 0;
+                        start = end;
+                    }
+                }
             }
         });
     }
-
-    task::spawn(async move {
-        let mut last = Instant::now();
-        loop {
-            tokio::time::delay_for(Duration::from_secs(THROUGHPUT_PERIOD)).await;
-            let now = Instant::now();
-            let delta = now - last;
-            println!(
-                "{} / s",
-                counter.swap(0, Ordering::SeqCst) / delta.as_secs()
-            );
-            last = now;
-        }
-    });
 
     // Block forever
     let () = futures::future::pending().await;
